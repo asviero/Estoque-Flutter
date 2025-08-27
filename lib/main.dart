@@ -5,14 +5,13 @@ import 'package:intl/intl.dart';
 
 import 'database_helper.dart';
 
-Future<void> main() async { // 1. Adicione 'async' e 'Future<void>'
+Future<void> main() async {
   // 2. Garante que o Flutter está inicializado antes de rodar código async
   WidgetsFlutterBinding.ensureInitialized(); 
 
   // 3. Carrega os dados de formatação para o nosso idioma (pt_BR)
-  await initializeDateFormatting('pt_BR', null); 
+  await initializeDateFormatting('pt_BR', null);
 
-  // 4. Agora, com tudo pronto, roda o aplicativo
   runApp(const CasaNoturnaApp());
 }
 
@@ -91,8 +90,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   late TabController _tabController;
   final dbHelper = DatabaseHelper.instance;
   late Future<List<Bebida>> _listaBebidas;
+  int _indiceAbaAtual = 0;
 
-  // NOVO: Guarda a data selecionada para gerenciar o estoque.
+  // Guarda a data selecionada para gerenciar o estoque.
   // Inicia com a data de hoje.
   DateTime _dataSelecionada = DateTime.now();
 
@@ -101,9 +101,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _refreshBebidasList(); // Carrega a lista inicial para a data de hoje
+    _tabController.addListener(_handleSelecaoDeAba);
   }
 
-  // ALTERADO: Agora recarrega a lista baseada na data selecionada.
+  // Função para atualizar o estado com o índice da aba selecionada
+void _handleSelecaoDeAba() {
+  if (_tabController.indexIsChanging) return;
+  setState(() {
+    _indiceAbaAtual = _tabController.index;
+  });
+}
+
+  // Recarrega a lista baseada na data selecionada.
   void _refreshBebidasList() {
     setState(() {
       _listaBebidas = dbHelper.getEstoqueParaData(_dataSelecionada);
@@ -112,11 +121,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleSelecaoDeAba);
     _tabController.dispose();
     super.dispose();
   }
 
-  // NOVO: Função para abrir o calendário e selecionar uma data.
+  // Função para abrir o calendário e selecionar uma data.
   Future<void> _selecionarData(BuildContext context) async {
     final DateTime? dataEscolhida = await showDatePicker(
       context: context,
@@ -155,10 +165,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       _refreshBebidasList();
       
       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('$quantidadeRetirada un. de ${bebida.nome} saíram do estoque.'),
             backgroundColor: Colors.orange,
-         ));
+            ));
       }
     } else {
       if (mounted) {
@@ -253,7 +263,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // ALTERADO: Título agora mostra a data e tem um botão de calendário
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -275,7 +284,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           controller: _tabController,
           tabs: const [
             Tab(icon: Icon(Icons.add_shopping_cart), text: 'Entrada'),
-            Tab(icon: Icon(Icons.local_bar), text: 'Bares'),
+            Tab(icon: Icon(Icons.local_bar), text: 'Saída'),
             Tab(icon: Icon(Icons.assessment), text: 'Relatório'),
           ],
         ),
@@ -304,7 +313,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 ),
                 OperacaoEstoqueTab(
                   estoque: estoque,
-                  titulo: 'Saída para os Bares',
+                  titulo: 'Saída do Estoque',
                   acao: _registrarSaida, // Passa a função diretamente
                   onRemover: _mostrarDialogoConfirmarRemocao,
                   corBotao: Colors.orange,
@@ -320,12 +329,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           return const Center(child: Text('Nenhuma bebida encontrada. Adicione uma no botão +'));
         },
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: _indiceAbaAtual == 0 ? FloatingActionButton(
         onPressed: _mostrarDialogoAdicionarBebida,
         backgroundColor: Colors.indigo,
         child: const Icon(Icons.add_shopping_cart),
         tooltip: 'Adicionar nova bebida ao catálogo',
-      ),
+      ) : null,
     );
   }
 }
