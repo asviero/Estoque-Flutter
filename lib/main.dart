@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 
 import 'database_helper.dart';
 
-void main() {
+Future<void> main() async { // 1. Adicione 'async' e 'Future<void>'
+  // 2. Garante que o Flutter está inicializado antes de rodar código async
+  WidgetsFlutterBinding.ensureInitialized(); 
+
+  // 3. Carrega os dados de formatação para o nosso idioma (pt_BR)
+  await initializeDateFormatting('pt_BR', null); 
+
+  // 4. Agora, com tudo pronto, roda o aplicativo
   runApp(const CasaNoturnaApp());
 }
 
-//----------- "Banco de Dados" -----------
+//----------- MODELO DE DADOS -----------
 class Bebida {
   final String id;
   final String nome;
-  int quantidade;
+  int quantidade; // A quantidade agora representa o estoque para a data selecionada
 
   Bebida({
     required this.id,
@@ -19,8 +28,6 @@ class Bebida {
     this.quantidade = 0,
   });
 
-  // Converte um objeto Bebida em um Map. As chaves devem corresponder
-  // aos nomes das colunas no banco de dados.
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -29,17 +36,17 @@ class Bebida {
     };
   }
 
-  // Construtor extra para criar uma Bebida a partir de um Map vindo do banco.
   factory Bebida.fromMap(Map<String, dynamic> map) {
     return Bebida(
       id: map['id'],
       nome: map['nome'],
-      quantidade: map['quantidade'],
+      // O COALESCE no SQL garante que a quantidade nunca será nula
+      quantidade: map['quantidade'] ?? 0,
     );
   }
 }
 
-//----------- Widget Principal -----------
+//----------- WIDGET PRINCIPAL -----------
 class CasaNoturnaApp extends StatelessWidget {
   const CasaNoturnaApp({super.key});
 
@@ -72,7 +79,7 @@ class CasaNoturnaApp extends StatelessWidget {
   }
 }
 
-//----------- Página Principal -----------
+//----------- PÁGINA PRINCIPAL -----------
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -82,21 +89,24 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final dbHelper = DatabaseHelper.instance; // Instância do nosso helper
-
+  final dbHelper = DatabaseHelper.instance;
   late Future<List<Bebida>> _listaBebidas;
+
+  // NOVO: Guarda a data selecionada para gerenciar o estoque.
+  // Inicia com a data de hoje.
+  DateTime _dataSelecionada = DateTime.now();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _refreshBebidasList(); // Carrega a lista inicial de bebidas
+    _refreshBebidasList(); // Carrega a lista inicial para a data de hoje
   }
 
-  // Função para recarregar a lista do banco de dados e atualizar a tela
+  // ALTERADO: Agora recarrega a lista baseada na data selecionada.
   void _refreshBebidasList() {
     setState(() {
-      _listaBebidas = dbHelper.getAllBebidas();
+      _listaBebidas = dbHelper.getEstoqueParaData(_dataSelecionada);
     });
   }
 
@@ -106,93 +116,93 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
-  //----------- AS FUNÇÕES DE LÓGICA -----------
-
-  Future<void> _adicionarEstoque(Bebida bebida, int quantidadeAdicionada) async {
-    bebida.quantidade += quantidadeAdicionada;
-    await dbHelper.updateBebida(bebida); // Atualiza no banco
-    _refreshBebidasList(); // Recarrega a lista para a UI
-
-    // Mostra a mensagem de confirmação
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$quantidadeAdicionada un. de ${bebida.nome} adicionadas ao estoque.'),
-          backgroundColor: Colors.green,
-        ),
-      );
+  // NOVO: Função para abrir o calendário e selecionar uma data.
+  Future<void> _selecionarData(BuildContext context) async {
+    final DateTime? dataEscolhida = await showDatePicker(
+      context: context,
+      initialDate: _dataSelecionada,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      locale: const Locale('pt', 'BR'), // Para traduzir o calendário
+    );
+    if (dataEscolhida != null && dataEscolhida != _dataSelecionada) {
+      setState(() {
+        _dataSelecionada = dataEscolhida;
+      });
+      _refreshBebidasList(); // Recarrega o estoque para a nova data
     }
   }
 
-  Future<void> _registrarSaida(Bebida bebida, int quantidadeRetirada, String motivo) async {
-    if (bebida.quantidade >= quantidadeRetirada) {
-      bebida.quantidade -= quantidadeRetirada;
-      await dbHelper.updateBebida(bebida); // Atualiza no banco
-      _refreshBebidasList(); // Recarrega a lista para a UI
+  //----------- LÓGICA DE ESTOQUE MODIFICADA PARA USAR A DATA SELECIONADA -----------
 
+  Future<void> _adicionarEstoque(Bebida bebida, int quantidadeAdicionada) async {
+    final novaQuantidade = bebida.quantidade + quantidadeAdicionada;
+    await dbHelper.updateEstoqueParaData(bebida.id, novaQuantidade, _dataSelecionada);
+    _refreshBebidasList();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('$quantidadeAdicionada un. de ${bebida.nome} adicionadas.'),
+        backgroundColor: Colors.green,
+      ));
+    }
+  }
+
+  Future<void> _registrarSaida(Bebida bebida, int quantidadeRetirada) async {
+    if (bebida.quantidade >= quantidadeRetirada) {
+      final novaQuantidade = bebida.quantidade - quantidadeRetirada;
+      await dbHelper.updateEstoqueParaData(bebida.id, novaQuantidade, _dataSelecionada);
+      _refreshBebidasList();
+      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$quantidadeRetirada un. de ${bebida.nome} saíram do estoque ($motivo).'),
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('$quantidadeRetirada un. de ${bebida.nome} saíram do estoque.'),
             backgroundColor: Colors.orange,
-          ),
-        );
+         ));
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Estoque insuficiente para ${bebida.nome}.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Estoque insuficiente para ${bebida.nome}.'),
+          backgroundColor: Colors.red,
+        ));
       }
     }
   }
   
-  // NOVO: Função para adicionar uma nova bebida ao banco de dados.
   Future<void> _adicionarNovaBebida(String nome) async {
     if (nome.trim().isEmpty) return;
-
-    // Cria um ID único simples a partir do nome
     final id = nome.toLowerCase().replaceAll(' ', '_').replaceAll(RegExp(r'[^a-z0-9_]'), '');
-
-    final novaBebida = Bebida(id: id, nome: nome, quantidade: 0);
+    final novaBebida = Bebida(id: id, nome: nome);
     await dbHelper.insertBebida(novaBebida);
     _refreshBebidasList();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${novaBebida.nome} adicionado(a) ao estoque.'),
-          backgroundColor: Colors.blue,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${novaBebida.nome} adicionado(a) ao catálogo.'),
+        backgroundColor: Colors.blue,
+      ));
     }
   }
 
-  // NOVO: Função para remover uma bebida do banco.
   Future<void> _removerBebida(String id, String nome) async {
     await dbHelper.deleteBebida(id);
     _refreshBebidasList();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$nome removido(a) do estoque.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('$nome removido(a) do catálogo.'),
+        backgroundColor: Colors.red,
+      ));
     }
   }
-
-  // NOVO: Diálogo para confirmar a remoção.
+  
   void _mostrarDialogoConfirmarRemocao(Bebida bebida) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirmar Remoção'),
-        content: Text('Tem certeza que deseja remover ${bebida.nome} do estoque? Esta ação não pode ser desfeita.'),
+        content: Text('Tem certeza que deseja remover ${bebida.nome} do catálogo? Todo o histórico de estoque será perdido.'),
         actions: [
           TextButton(
             child: const Text('Cancelar'),
@@ -211,13 +221,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  // NOVO: Diálogo para adicionar uma nova bebida.
   void _mostrarDialogoAdicionarBebida() {
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Adicionar Nova Bebida'),
+        title: const Text('Adicionar Nova Bebida ao Catálogo'),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -244,7 +253,24 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestão de Estoque'),
+        // ALTERADO: Título agora mostra a data e tem um botão de calendário
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Gestão de Estoque'),
+            Text(
+              DateFormat('EEEE, dd/MM/yyyy', 'pt_BR').format(_dataSelecionada),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_today),
+            onPressed: () => _selecionarData(context),
+            tooltip: 'Selecionar Data',
+          )
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -259,19 +285,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
-          }
+          } 
           else if (snapshot.hasError) {
             return Center(child: Text('Erro ao carregar dados: ${snapshot.error}'));
-          }
+          } 
           else if (snapshot.hasData) {
             final estoque = snapshot.data!;
-            // ALTERADO: Passando a função de remover para as abas
             return TabBarView(
               controller: _tabController,
               children: [
                 OperacaoEstoqueTab(
                   estoque: estoque,
-                  titulo: 'Adicionar ao Estoque',
+                  titulo: 'Entrada no Estoque',
                   acao: _adicionarEstoque,
                   onRemover: _mostrarDialogoConfirmarRemocao,
                   corBotao: Colors.green,
@@ -279,15 +304,15 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 ),
                 OperacaoEstoqueTab(
                   estoque: estoque,
-                  titulo: 'Enviar para os Bares',
-                  acao: (bebida, qtd) => _registrarSaida(bebida, qtd, 'Envio para Bar'),
-                  onRemover: _mostrarDialogoConfirmarRemocao, // ALTERADO
+                  titulo: 'Saída para os Bares',
+                  acao: _registrarSaida, // Passa a função diretamente
+                  onRemover: _mostrarDialogoConfirmarRemocao,
                   corBotao: Colors.orange,
                   textoBotao: 'Enviar',
                 ),
                 RelatorioTab(
                   estoque: estoque,
-                  onRemover: _mostrarDialogoConfirmarRemocao, // ALTERADO
+                  onRemover: _mostrarDialogoConfirmarRemocao,
                 ),
               ],
             );
@@ -295,22 +320,22 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           return const Center(child: Text('Nenhuma bebida encontrada. Adicione uma no botão +'));
         },
       ),
-      // NOVO: Botão flutuante para adicionar novas bebidas
       floatingActionButton: FloatingActionButton(
         onPressed: _mostrarDialogoAdicionarBebida,
         backgroundColor: Colors.indigo,
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add_shopping_cart),
+        tooltip: 'Adicionar nova bebida ao catálogo',
       ),
     );
   }
 }
 
-//----------- Widget para as abas de operação -----------
+//----------- WIDGETS DAS ABAS -----------
 class OperacaoEstoqueTab extends StatelessWidget {
   final List<Bebida> estoque;
   final String titulo;
   final Function(Bebida, int) acao;
-  final Function(Bebida) onRemover; // ALTERADO
+  final Function(Bebida) onRemover;
   final Color corBotao;
   final String textoBotao;
 
@@ -319,7 +344,7 @@ class OperacaoEstoqueTab extends StatelessWidget {
     required this.estoque,
     required this.titulo,
     required this.acao,
-    required this.onRemover, // ALTERADO
+    required this.onRemover,
     required this.corBotao,
     required this.textoBotao,
   });
@@ -379,8 +404,7 @@ class OperacaoEstoqueTab extends StatelessWidget {
                   margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
                   child: ListTile(
                     title: Text(bebida.nome, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('Em estoque: ${bebida.quantidade}'),
-                    // ALTERADO: Adicionamos o botão de remover
+                    subtitle: Text('Estoque do dia: ${bebida.quantidade}'),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -406,15 +430,14 @@ class OperacaoEstoqueTab extends StatelessWidget {
   }
 }
 
-//----------- Widget para a aba de relatório -----------
 class RelatorioTab extends StatelessWidget {
   final List<Bebida> estoque;
-  final Function(Bebida) onRemover; // ALTERADO
+  final Function(Bebida) onRemover;
 
   const RelatorioTab({
     super.key,
     required this.estoque,
-    required this.onRemover, // ALTERADO
+    required this.onRemover,
   });
 
   @override
@@ -427,7 +450,7 @@ class RelatorioTab extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
-              'Relatório de Estoque Atual',
+              'Relatório do Dia',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
           ),
