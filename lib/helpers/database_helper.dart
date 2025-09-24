@@ -1,10 +1,8 @@
-// lib/database_helper.dart
-
 import 'package:intl/intl.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
-import 'main.dart';
+import '../models/bebidas.dart';
 
 class DatabaseHelper {
   DatabaseHelper._privateConstructor();
@@ -23,15 +21,12 @@ class DatabaseHelper {
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    // Tabela 1: Catálogo de bebidas
     await db.execute('''
       CREATE TABLE bebidas (
         id TEXT PRIMARY KEY,
         nome TEXT NOT NULL
       )
     ''');
-
-    // Tabela 2: Registro de cada movimentação de estoque
     await db.execute('''
       CREATE TABLE movimentacoes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,19 +38,13 @@ class DatabaseHelper {
         FOREIGN KEY (bebida_id) REFERENCES bebidas (id) ON DELETE CASCADE
       )
     ''');
-    
     await _seedBebidas(db);
   }
   
-  // Lista inicial de bebidas
   Future<void> _seedBebidas(Database db) async {
     final List<String> bebidasIniciais = [
-      'Absolut', 'Ballena', 'Beefeater', 'Beefeater Pink', 'Belvedere 700ml', 'Black Label', 'Chandon', 'Chandon 1,5L Brut', 'Chivas',
-      'Elyx 1,750L', 'Elyx 4,5L', 'Elyx 750mL', 'Fernet', 'Grey Goose', 'Grey Goose 1,5L', 'Jack Apple', 'Jack Daniels', 'Jack Fire',
-      'Jack Honey', 'Jaegermaister', 'Licor 43', 'Red Label', 'Salton Brut', 'Salton Brut Rosé', 'Salton Moscatel', 'Seagram\'s', 'Smirnoff',
-      'Tequila', 'Veuve Clicquot',
+      'Absolut', 'Ballena', 'Beefeater', 'Beefeater Pink', 'Belvedere 700ml', 'Black Label', 'Chandon', 'Chandon 1,5L Brut', 'Chivas', 'Elyx 1,750L', 'Elyx 4,5L', 'Elyx 750mL', 'Fernet', 'Grey Goose', 'Grey Goose 1,5L', 'Jack Apple', 'Jack Daniels', 'Jack Fire', 'Jack Honey', 'Jaegermaister', 'Licor 43', 'Red Label', 'Salton Brut', 'Salton Brut Rosé', 'Salton Moscatel', 'Seagram\'s', 'Smirnoff', 'Tequila', 'Veuve Clicquot',
     ];
-
     final batch = db.batch();
     for (final nome in bebidasIniciais) {
       final id = nome.toLowerCase().replaceAll(' ', '_').replaceAll(RegExp(r'[^a-z0-9_]'), '');
@@ -64,35 +53,23 @@ class DatabaseHelper {
     await batch.commit(noResult: true);
   }
   
-  // ----------- OPERAÇÕES NO BANCO -----------
   Future<void> adicionarMovimentacao({ required String bebidaId, required DateTime data, required int quantidade, required String tipo, String? observacao }) async {
     final db = await instance.database;
     final dataFormatada = DateFormat('yyyy-MM-dd').format(data);
-
     await db.insert('movimentacoes', {
-      'bebida_id': bebidaId,
-      'data': dataFormatada,
-      'quantidade_alterada': quantidade,
-      'tipo': tipo,
-      'observacao': observacao,
+      'bebida_id': bebidaId, 'data': dataFormatada, 'quantidade_alterada': quantidade, 'tipo': tipo, 'observacao': observacao,
     });
   }
 
   Future<List<Bebida>> getEstoqueParaData(DateTime data) async {
     final db = await instance.database;
     final dataFormatada = DateFormat('yyyy-MM-dd').format(data);
-
     final List<Map<String, dynamic>> maps = await db.rawQuery('''
-      SELECT
-        b.id,
-        b.nome,
-        COALESCE(SUM(m.quantidade_alterada), 0) as quantidade
+      SELECT b.id, b.nome, COALESCE(SUM(m.quantidade_alterada), 0) as quantidade
       FROM bebidas b
       LEFT JOIN movimentacoes m ON b.id = m.bebida_id AND m.data <= ?
-      GROUP BY b.id, b.nome
-      ORDER BY b.nome ASC
+      GROUP BY b.id, b.nome ORDER BY b.nome ASC
     ''', [dataFormatada]);
-    
     return List.generate(maps.length, (i) => Bebida.fromMap(maps[i]));
   }
 
@@ -105,15 +82,10 @@ class DatabaseHelper {
       SELECT
         b.nome,
         b.id,
-        -- Estoque Inicial "real" é tudo que aconteceu ANTES de hoje.
         COALESCE((SELECT SUM(quantidade_alterada) FROM movimentacoes WHERE bebida_id = b.id AND data < ?), 0) as estoqueAnterior,
-        -- Soma das Vendas do dia
         COALESCE(SUM(CASE WHEN m.tipo = 'Venda' THEN m.quantidade_alterada END), 0) as vendido,
-        -- Soma das Saídas para Bar do dia
         COALESCE(SUM(CASE WHEN m.tipo = 'Saída para Bar' THEN m.quantidade_alterada END), 0) as retiradoDoEstoque,
-        -- Soma das Entradas NORMAIS do dia
         COALESCE(SUM(CASE WHEN m.tipo = 'Entrada' THEN m.quantidade_alterada END), 0) as entradasDoDia,
-        -- Pega o valor do Ajuste Inicial do dia, se houver
         COALESCE(SUM(CASE WHEN m.tipo = 'Ajuste Inicial' THEN m.quantidade_alterada END), 0) as ajusteInicialDoDia
       FROM bebidas b
       LEFT JOIN movimentacoes m ON b.id = m.bebida_id AND m.data = ?
@@ -121,23 +93,31 @@ class DatabaseHelper {
       ORDER BY b.nome ASC
     ''', [dataAnterior, dataFormatada]);
 
+    final movimentacoesDoDia = await getMovimentacoesDoDia(data);
     return result.map((row) {
-      final estoqueAnterior = row['estoqueAnterior'] as int;
-      final ajusteInicialDoDia = row['ajusteInicialDoDia'] as int;
+      // ALTERADO: Trocamos 'as int' por '?? 0' para segurança
+      final estoqueAnterior = row['estoqueAnterior'] ?? 0;
+      final ajusteInicialDoDia = row['ajusteInicialDoDia'] ?? 0;
       
-      // O estoque inicial do dia é o que sobrou de ontem OU o ajuste que foi feito hoje.
       final estoqueInicial = (ajusteInicialDoDia > 0) ? ajusteInicialDoDia : estoqueAnterior;
 
-      final entradasDoDia = row['entradasDoDia'] as int;
-      final vendido = (row['vendido'] as int).abs();
-      final retiradoDoEstoque = (row['retiradoDoEstoque'] as int).abs();
+      final entradasDoDia = row['entradasDoDia'] ?? 0;
+      final vendido = (row['vendido'] ?? 0).abs();
+      final retiradoDoEstoque = (row['retiradoDoEstoque'] ?? 0).abs();
       final estoqueFinal = estoqueInicial + entradasDoDia - vendido - retiradoDoEstoque;
       
+      final observacoes = movimentacoesDoDia
+          .where((m) => m['nome'] == row['nome'] && m['observacao'] != null)
+          .map((m) => m['observacao'] as String)
+          .where((obs) => obs.isNotEmpty)
+          .join('; ');
+
       return {
         'nome': row['nome'],
         'estoqueInicial': estoqueInicial,
         'vendido': vendido,
         'retiradoDoEstoque': retiradoDoEstoque,
+        'observacao': observacoes,
         'estoqueFinal': estoqueFinal,
       };
     }).toList();
@@ -156,7 +136,6 @@ class DatabaseHelper {
     return result;
   }
 
-  // Funções para gerenciar o catálogo de bebidas
   Future<int> insertBebida(Bebida bebida) async {
     final db = await instance.database;
     return await db.insert('bebidas', {'id': bebida.id, 'nome': bebida.nome},
