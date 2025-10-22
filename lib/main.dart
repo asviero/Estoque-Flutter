@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'screens/home_page.dart';
@@ -17,6 +18,16 @@ class CasaNoturnaApp extends StatelessWidget {
     return MaterialApp(
       title: 'Controle de Estoque',
       debugShowCheckedModeBanner: false,
+
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('pt', 'BR'), // Suporte para Português do Brasil
+      ],
+
       theme: ThemeData(
         primarySwatch: Colors.indigo,
         brightness: Brightness.dark,
@@ -27,7 +38,9 @@ class CasaNoturnaApp extends StatelessWidget {
         ),
         cardTheme: CardThemeData(
           color: const Color(0xFF1E1E1E),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
       home: const HomePage(),
