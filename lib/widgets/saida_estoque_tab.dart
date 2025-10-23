@@ -1,15 +1,11 @@
-// lib/widgets/saida_estoque_tab.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../models/bebidas.dart';
 
-// Widget especializado para a aba de Saída, com diálogo de seleção de motivo.
 class SaidaEstoqueTab extends StatelessWidget {
   final List<Bebida> estoque;
-  final Function(Bebida, int, String?, String)
-  onRegistrarSaida; // Ação específica de saída
+  final Function(Bebida, int, String?, String) onRegistrarSaida; //
   final Function(Bebida) onRemover;
 
   const SaidaEstoqueTab({
@@ -22,12 +18,11 @@ class SaidaEstoqueTab extends StatelessWidget {
   void _mostrarDialogoDeSaida(BuildContext context, Bebida bebida) {
     final qtdController = TextEditingController();
     final obsController = TextEditingController();
-    String motivoSelecionado = 'Saída - Drinks'; // Valor inicial padrão
+    String motivoSelecionado = 'Saída - Drinks';
 
     showDialog(
       context: context,
       builder: (ctx) {
-        // StatefulBuilder permite atualizar o estado apenas dentro do diálogo
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
@@ -41,7 +36,6 @@ class SaidaEstoqueTab extends StatelessWidget {
                       'Motivo da Saída:',
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
-                    // Botões de Rádio para selecionar o motivo
                     RadioListTile<String>(
                       title: const Text('Drinks'),
                       value: 'Saída - Drinks',

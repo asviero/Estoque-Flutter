@@ -1,5 +1,3 @@
-// lib/screens/home_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -24,10 +22,9 @@ class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final dbHelper = DatabaseHelper.instance;
-  Future<List<Bebida>>? _listaBebidas; // Inicia como nulo
+  Future<List<Bebida>>? _listaBebidas;
   int _indiceAbaAtual = 0;
 
-  // A data selecionada agora pode ser nula inicialmente.
   DateTime? _dataSelecionada;
 
   @override
@@ -36,7 +33,6 @@ class _HomePageState extends State<HomePage>
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_handleSelecaoDeAba);
 
-    // Chama o calendário assim que a tela for construída pela primeira vez.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _selecionarData(context, isInitialSelection: true);
     });
@@ -49,7 +45,6 @@ class _HomePageState extends State<HomePage>
     });
   }
 
-  // Atualizado para lidar com a data que pode ser nula
   void _refreshBebidasList() {
     if (_dataSelecionada != null) {
       setState(() {
@@ -65,7 +60,6 @@ class _HomePageState extends State<HomePage>
     super.dispose();
   }
 
-  // Atualizado para lidar com a seleção inicial
   Future<void> _selecionarData(
     BuildContext context, {
     bool isInitialSelection = false,
@@ -78,8 +72,6 @@ class _HomePageState extends State<HomePage>
       locale: const Locale('pt', 'BR'),
     );
 
-    // Se o usuário escolher uma data, nós a usamos.
-    // Se for a seleção inicial e o usuário cancelar, usamos a data de hoje como padrão.
     if (dataEscolhida != null) {
       if (mounted) {
         setState(() {
@@ -97,8 +89,6 @@ class _HomePageState extends State<HomePage>
     _refreshBebidasList();
   }
 
-  // As funções de lógica abaixo precisam usar '_dataSelecionada!' ou
-  // tratar o caso de ser nulo, mas a UI já previne isso.
   Future<void> _adicionarEstoque(
     Bebida bebida,
     int quantidade,
@@ -302,7 +292,6 @@ class _HomePageState extends State<HomePage>
       'pt_BR',
     ).format(_dataSelecionada!);
 
-    // A chamada da função continua a mesma, mas os dados retornados agora são mais detalhados
     final dadosConsolidados = await dbHelper.getDadosRelatorioConsolidado(
       _dataSelecionada!,
     );
@@ -326,7 +315,6 @@ class _HomePageState extends State<HomePage>
             child: pw.Text('Resumo do Dia', style: pw.TextStyle(font: ttfBold)),
           ),
 
-          // ALTERADO: Novas colunas na tabela de resumo
           pw.TableHelper.fromTextArray(
             headerStyle: pw.TextStyle(font: ttfBold, fontSize: 8),
             cellStyle: pw.TextStyle(font: ttf, fontSize: 7),

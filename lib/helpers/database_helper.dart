@@ -122,7 +122,6 @@ class DatabaseHelper {
       'yyyy-MM-dd',
     ).format(data.subtract(const Duration(days: 1)));
 
-    // ALTERADO: A consulta SQL agora calcula cada tipo de saída separadamente.
     final List<Map<String, dynamic>> result = await db.rawQuery(
       '''
       SELECT
@@ -158,7 +157,6 @@ class DatabaseHelper {
       final entradasDoDia = row['entradasDoDia'] as int;
       final vendido = (row['vendido'] as int).abs();
 
-      // ALTERADO: Mapeia os novos resultados da consulta
       final saidaDrinks = (row['saidaDrinks'] as int).abs();
       final saidaDoses = (row['saidaDoses'] as int).abs();
       final saidaOutroBar = (row['saidaOutroBar'] as int).abs();
