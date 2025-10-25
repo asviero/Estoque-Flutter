@@ -24,9 +24,7 @@ class CasaNoturnaApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('pt', 'BR'), // Suporte para Português do Brasil
-      ],
+      supportedLocales: const [Locale('pt', 'BR')],
 
       theme: ThemeData(
         primarySwatch: Colors.indigo,

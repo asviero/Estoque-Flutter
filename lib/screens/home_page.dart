@@ -321,11 +321,11 @@ class _HomePageState extends State<HomePage>
             headers: [
               'Bebida',
               'Est. Inicial',
+              'Entrada',
               'Vendido',
               'Saída p/ Drinks',
               'Saída p/ Doses',
               'Saída p/ Bar',
-              'Observações',
               'Est. Final',
             ],
             data: dadosConsolidados
@@ -333,11 +333,11 @@ class _HomePageState extends State<HomePage>
                   (dado) => [
                     dado['nome'],
                     dado['estoqueInicial'].toString(),
+                    dado['entradas'].toString(),
                     dado['vendido'].toString(),
                     dado['saidaDrinks'].toString(),
                     dado['saidaDoses'].toString(),
                     dado['saidaOutroBar'].toString(),
-                    dado['observacao'],
                     dado['estoqueFinal'].toString(),
                   ],
                 )
@@ -348,50 +348,44 @@ class _HomePageState extends State<HomePage>
               3: pw.Alignment.center,
               4: pw.Alignment.center,
               5: pw.Alignment.center,
+              6: pw.Alignment.center,
               7: pw.Alignment.center,
-            },
-            columnWidths: {
-              0: const pw.FlexColumnWidth(2),
-              4: const pw.FlexColumnWidth(3),
             },
             border: pw.TableBorder.all(),
           ),
 
-          pw.SizedBox(height: 30),
-          pw.Header(
-            level: 1,
-            child: pw.Text(
-              'Registro Detalhado de Movimentações do Dia',
-              style: pw.TextStyle(font: ttfBold),
+          if (movimentacoesDoDia.isNotEmpty) ...[
+            pw.SizedBox(height: 30),
+            pw.Header(
+              level: 1,
+              child: pw.Text(
+                'Detalhes de Todas as Movimentações do Dia',
+                style: pw.TextStyle(font: ttfBold),
+              ),
             ),
-          ),
-          movimentacoesDoDia.isEmpty
-              ? pw.Text(
-                  'Nenhuma movimentação registrada para esta data.',
-                  style: pw.TextStyle(font: ttf),
-                )
-              : pw.TableHelper.fromTextArray(
-                  headerStyle: pw.TextStyle(font: ttfBold, fontSize: 8),
-                  cellStyle: pw.TextStyle(font: ttf, fontSize: 7),
-                  headers: ['Bebida', 'Tipo', 'Quantidade', 'Observação'],
-                  data: movimentacoesDoDia.map((m) {
-                    final qtd = m['quantidade_alterada'] as int;
-                    final qtdFormatada = qtd > 0 ? '+$qtd' : qtd.toString();
-                    return [
-                      m['nome'],
-                      m['tipo'],
-                      qtdFormatada,
-                      m['observacao'] ?? '-',
-                    ];
-                  }).toList(),
-                  cellAlignments: {2: pw.Alignment.center},
-                  columnWidths: {
-                    0: const pw.FlexColumnWidth(2.5),
-                    2: const pw.FlexColumnWidth(1),
-                    3: const pw.FlexColumnWidth(3),
-                  },
-                  border: pw.TableBorder.all(),
-                ),
+            pw.TableHelper.fromTextArray(
+              headerStyle: pw.TextStyle(font: ttfBold, fontSize: 8),
+              cellStyle: pw.TextStyle(font: ttf, fontSize: 7),
+              headers: ['Bebida', 'Tipo', 'Quantidade', 'Observação'],
+              data: movimentacoesDoDia.map((m) {
+                final qtd = m['quantidade_alterada'] as int;
+                final qtdFormatada = qtd > 0 ? '+$qtd' : qtd.toString();
+                return [
+                  m['nome'],
+                  m['tipo'],
+                  qtdFormatada,
+                  m['observacao'] ?? '-',
+                ];
+              }).toList(),
+              cellAlignments: {2: pw.Alignment.center},
+              columnWidths: {
+                0: const pw.FlexColumnWidth(2.5),
+                2: const pw.FlexColumnWidth(1),
+                3: const pw.FlexColumnWidth(3),
+              },
+              border: pw.TableBorder.all(),
+            ),
+          ],
         ],
       ),
     );

@@ -129,12 +129,9 @@ class DatabaseHelper {
         b.id,
         COALESCE((SELECT SUM(quantidade_alterada) FROM movimentacoes WHERE bebida_id = b.id AND data < ?), 0) as estoqueAnterior,
         COALESCE(SUM(CASE WHEN m.tipo = 'Venda' THEN m.quantidade_alterada END), 0) as vendido,
-        
-        -- NOVO: Separação dos tipos de saída
         COALESCE(SUM(CASE WHEN m.tipo = 'Saída - Drinks' THEN m.quantidade_alterada END), 0) as saidaDrinks,
         COALESCE(SUM(CASE WHEN m.tipo = 'Saída - Doses' THEN m.quantidade_alterada END), 0) as saidaDoses,
         COALESCE(SUM(CASE WHEN m.tipo = 'Saída - Outro Bar' THEN m.quantidade_alterada END), 0) as saidaOutroBar,
-
         COALESCE(SUM(CASE WHEN m.tipo = 'Entrada' THEN m.quantidade_alterada END), 0) as entradasDoDia,
         COALESCE(SUM(CASE WHEN m.tipo = 'Ajuste Inicial' THEN m.quantidade_alterada END), 0) as ajusteInicialDoDia
       FROM bebidas b
@@ -145,18 +142,15 @@ class DatabaseHelper {
       [dataAnterior, dataFormatada],
     );
 
-    final movimentacoesDoDia = await getMovimentacoesDoDia(data);
     return result.map((row) {
       final estoqueAnterior = row['estoqueAnterior'] as int;
       final ajusteInicialDoDia = row['ajusteInicialDoDia'] as int;
-      final estoqueInicial =
-          (ajusteInicialDoDia != 0 && ajusteInicialDoDia > estoqueAnterior)
+      final estoqueInicial = (ajusteInicialDoDia != 0)
           ? ajusteInicialDoDia
           : estoqueAnterior;
 
       final entradasDoDia = row['entradasDoDia'] as int;
       final vendido = (row['vendido'] as int).abs();
-
       final saidaDrinks = (row['saidaDrinks'] as int).abs();
       final saidaDoses = (row['saidaDoses'] as int).abs();
       final saidaOutroBar = (row['saidaOutroBar'] as int).abs();
@@ -169,20 +163,14 @@ class DatabaseHelper {
           saidaDoses -
           saidaOutroBar;
 
-      final observacoes = movimentacoesDoDia
-          .where((m) => m['nome'] == row['nome'] && m['observacao'] != null)
-          .map((m) => m['observacao'] as String)
-          .where((obs) => obs.isNotEmpty)
-          .join('; ');
-
       return {
         'nome': row['nome'],
         'estoqueInicial': estoqueInicial,
+        'entradas': entradasDoDia,
         'vendido': vendido,
         'saidaDrinks': saidaDrinks,
         'saidaDoses': saidaDoses,
         'saidaOutroBar': saidaOutroBar,
-        'observacao': observacoes,
         'estoqueFinal': estoqueFinal,
       };
     }).toList();
