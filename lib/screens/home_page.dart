@@ -17,7 +17,8 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+class _HomePageState extends State<HomePage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final dbHelper = DatabaseHelper.instance;
   late Future<List<Bebida>> _listaBebidas;
@@ -64,11 +65,17 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       setState(() {
         _dataSelecionada = dataEscolhida;
       });
+      await Future.delayed(const Duration(milliseconds: 100));
       _refreshBebidasList();
     }
   }
 
-  Future<void> _adicionarEstoque(Bebida bebida, int quantidade, String? observacao, bool isAjusteInicial) async {
+  Future<void> _adicionarEstoque(
+    Bebida bebida,
+    int quantidade,
+    String? observacao,
+    bool isAjusteInicial,
+  ) async {
     final tipoMovimentacao = isAjusteInicial ? 'Ajuste Inicial' : 'Entrada';
     await dbHelper.adicionarMovimentacao(
       bebidaId: bebida.id,
@@ -79,14 +86,21 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
     _refreshBebidasList();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('$quantidade un. de ${bebida.nome} adicionadas.'),
-        backgroundColor: Colors.green,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$quantidade un. de ${bebida.nome} adicionadas.'),
+          backgroundColor: Colors.green,
+        ),
+      );
     }
   }
 
-  Future<void> _registrarSaida(Bebida bebida, int quantidade, String? observacao, bool isAjuste) async {
+  Future<void> _registrarSaida(
+    Bebida bebida,
+    int quantidade,
+    String? observacao,
+    bool isAjuste,
+  ) async {
     final estoqueAtual = await dbHelper
         .getEstoqueParaData(_dataSelecionada)
         .then((lista) => lista.firstWhere((b) => b.id == bebida.id).quantidade);
@@ -101,21 +115,33 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       );
       _refreshBebidasList();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('$quantidade un. de ${bebida.nome} saíram para o bar.'),
-            backgroundColor: Colors.orange));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '$quantidade un. de ${bebida.nome} saíram para o bar.',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Estoque insuficiente para ${bebida.nome}.'),
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Estoque insuficiente para ${bebida.nome}.'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
 
-  Future<void> _registrarVenda(Bebida bebida, int quantidade, String? observacao, bool isAjuste) async {
+  Future<void> _registrarVenda(
+    Bebida bebida,
+    int quantidade,
+    String? observacao,
+    bool isAjuste,
+  ) async {
     final estoqueAtual = await dbHelper
         .getEstoqueParaData(_dataSelecionada)
         .then((lista) => lista.firstWhere((b) => b.id == bebida.id).quantidade);
@@ -130,32 +156,41 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       );
       _refreshBebidasList();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('$quantidade un. de ${bebida.nome} foram vendidas.'),
-          backgroundColor: Colors.red.shade400,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$quantidade un. de ${bebida.nome} foram vendidas.'),
+            backgroundColor: Colors.red.shade400,
+          ),
+        );
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Estoque insuficiente para ${bebida.nome}.'),
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Estoque insuficiente para ${bebida.nome}.'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
 
   Future<void> _adicionarNovaBebida(String nome) async {
     if (nome.trim().isEmpty) return;
-    final id = nome.toLowerCase().replaceAll(' ', '_').replaceAll(RegExp(r'[^a-z0-9_]'), '');
+    final id = nome
+        .toLowerCase()
+        .replaceAll(' ', '_')
+        .replaceAll(RegExp(r'[^a-z0-9_]'), '');
     final novaBebida = Bebida(id: id, nome: nome);
     await dbHelper.insertBebida(novaBebida);
     _refreshBebidasList();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('${novaBebida.nome} adicionado(a) ao catálogo.'),
-        backgroundColor: Colors.blue,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${novaBebida.nome} adicionado(a) ao catálogo.'),
+          backgroundColor: Colors.blue,
+        ),
+      );
     }
   }
 
@@ -163,10 +198,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     await dbHelper.deleteBebida(id);
     _refreshBebidasList();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('$nome removido(a) do catálogo.'),
-        backgroundColor: Colors.red,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$nome removido(a) do catálogo.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -176,7 +213,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       builder: (ctx) => AlertDialog(
         title: const Text('Confirmar Remoção'),
         content: Text(
-            'Tem certeza que deseja remover ${bebida.nome} do catálogo? Todo o histórico de estoque será perdido.'),
+          'Tem certeza que deseja remover ${bebida.nome} do catálogo? Todo o histórico de estoque será perdido.',
+        ),
         actions: [
           TextButton(
             child: const Text('Cancelar'),
@@ -230,10 +268,17 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final ttfBold = pw.Font.ttf(boldFontData);
 
     final pdf = pw.Document();
-    final dataFormatada = DateFormat('dd/MM/yyyy', 'pt_BR').format(_dataSelecionada);
-    
-    final dadosConsolidados = await dbHelper.getDadosRelatorioConsolidado(_dataSelecionada);
-    final movimentacoesDoDia = await dbHelper.getMovimentacoesDoDia(_dataSelecionada);
+    final dataFormatada = DateFormat(
+      'dd/MM/yyyy',
+      'pt_BR',
+    ).format(_dataSelecionada);
+
+    final dadosConsolidados = await dbHelper.getDadosRelatorioConsolidado(
+      _dataSelecionada,
+    );
+    final movimentacoesDoDia = await dbHelper.getMovimentacoesDoDia(
+      _dataSelecionada,
+    );
 
     final todasAsSaidas = movimentacoesDoDia
         .where((m) => (m['quantidade_alterada'] as int) < 0)
@@ -244,28 +289,55 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         pageFormat: PdfPageFormat.a4.landscape,
         header: (context) => pw.Header(
           level: 0,
-          child: pw.Text('Relatório de Estoque - $dataFormatada', style: pw.TextStyle(font: ttfBold, fontSize: 18)),
+          child: pw.Text(
+            'Relatório de Estoque - $dataFormatada',
+            style: pw.TextStyle(font: ttfBold, fontSize: 18),
+          ),
         ),
         build: (context) => [
-          pw.Header(level: 1, child: pw.Text('Resumo do Dia', style: pw.TextStyle(font: ttfBold))),
+          pw.Header(
+            level: 1,
+            child: pw.Text('Resumo do Dia', style: pw.TextStyle(font: ttfBold)),
+          ),
           pw.TableHelper.fromTextArray(
             headerStyle: pw.TextStyle(font: ttfBold, fontSize: 8),
             cellStyle: pw.TextStyle(font: ttf, fontSize: 7),
-            headers: [ 'Bebida', 'Est. Inicial', 'Vendas', 'Saídas p/ Bar', 'Est. Final' ],
-            data: dadosConsolidados.map((dado) => [
-              dado['nome'],
-              dado['estoqueInicial'].toString(),
-              dado['vendido'].toString(),
-              dado['retiradoDoEstoque'].toString(),
-              dado['estoqueFinal'].toString(),
-            ]).toList(),
-            cellAlignments: { 1: pw.Alignment.center, 2: pw.Alignment.center, 3: pw.Alignment.center, 4: pw.Alignment.center, },
+            headers: [
+              'Bebida',
+              'Est. Inicial',
+              'Vendas',
+              'Saídas p/ Bar',
+              'Est. Final',
+            ],
+            data: dadosConsolidados
+                .map(
+                  (dado) => [
+                    dado['nome'],
+                    dado['estoqueInicial'].toString(),
+                    dado['vendido'].toString(),
+                    dado['retiradoDoEstoque'].toString(),
+                    dado['estoqueFinal'].toString(),
+                  ],
+                )
+                .toList(),
+            cellAlignments: {
+              1: pw.Alignment.center,
+              2: pw.Alignment.center,
+              3: pw.Alignment.center,
+              4: pw.Alignment.center,
+            },
             border: pw.TableBorder.all(),
           ),
-          
+
           if (todasAsSaidas.isNotEmpty) ...[
             pw.SizedBox(height: 30),
-            pw.Header(level: 1, child: pw.Text('Detalhes das Saídas do Dia', style: pw.TextStyle(font: ttfBold))),
+            pw.Header(
+              level: 1,
+              child: pw.Text(
+                'Detalhes das Saídas do Dia',
+                style: pw.TextStyle(font: ttfBold),
+              ),
+            ),
             pw.TableHelper.fromTextArray(
               headerStyle: pw.TextStyle(font: ttfBold, fontSize: 8),
               cellStyle: pw.TextStyle(font: ttf, fontSize: 7),
@@ -273,13 +345,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               data: todasAsSaidas.map((m) {
                 final qtd = (m['quantidade_alterada'] as int).abs();
                 return [
-                  qtd.toString(), m['nome'], m['tipo'], m['observacao'] ?? '-',
+                  qtd.toString(),
+                  m['nome'],
+                  m['tipo'],
+                  m['observacao'] ?? '-',
                 ];
               }).toList(),
-              cellAlignments: { 0: pw.Alignment.center, },
+              cellAlignments: {0: pw.Alignment.center},
               columnWidths: {
-                0: const pw.FlexColumnWidth(1), 1: const pw.FlexColumnWidth(3),
-                2: const pw.FlexColumnWidth(2), 3: const pw.FlexColumnWidth(4),
+                0: const pw.FlexColumnWidth(1),
+                1: const pw.FlexColumnWidth(3),
+                2: const pw.FlexColumnWidth(2),
+                3: const pw.FlexColumnWidth(4),
               },
               border: pw.TableBorder.all(),
             ),
@@ -309,7 +386,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             icon: const Icon(Icons.calendar_today),
             onPressed: () => _selecionarData(context),
             tooltip: 'Selecionar Data',
-          )
+          ),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -363,17 +440,23 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           } else if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('Erro ao carregar dados: ${snapshot.error}'));
+            return Center(
+              child: Text('Erro ao carregar dados: ${snapshot.error}'),
+            );
           }
-          return const Center(child: Text('Nenhuma bebida encontrada. Adicione uma no botão +'));
+          return const Center(
+            child: Text('Nenhuma bebida encontrada. Adicione uma no botão +'),
+          );
         },
       ),
-      floatingActionButton: _indiceAbaAtual == 0 ? FloatingActionButton(
-        onPressed: _mostrarDialogoAdicionarBebida,
-        backgroundColor: Colors.indigo,
-        tooltip: 'Adicionar nova bebida ao catálogo',
-        child: const Icon(Icons.add_shopping_cart),
-      ) : null,
+      floatingActionButton: _indiceAbaAtual == 0
+          ? FloatingActionButton(
+              onPressed: _mostrarDialogoAdicionarBebida,
+              backgroundColor: Colors.indigo,
+              tooltip: 'Adicionar nova bebida ao catálogo',
+              child: const Icon(Icons.add_shopping_cart),
+            )
+          : null,
     );
   }
 }

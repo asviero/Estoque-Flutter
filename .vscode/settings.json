@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "D:/Projetos/Flutter Projects/flutter_application_1/linux"
+    "cmake.sourceDirectory": "D:/Projetos/Flutter Projects/flutter_application_1/linux",
+    "cmake.ignoreCMakeListsMissing": true
 }
