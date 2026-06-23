@@ -297,7 +297,7 @@ class _HomePageState extends State<HomePage>
               'Est. Inicial',
               'Entradas',
               'Vendas',
-              'Saídas p/ Bar',
+              'Saídas',
               'Est. Final',
             ],
             data: dadosConsolidados
@@ -477,7 +477,7 @@ class _HomePageState extends State<HomePage>
               ),
               OperacaoEstoqueTab(
                 estoque: estoque,
-                titulo: 'Saída para os Bares',
+                titulo: 'Saídas',
                 acao: _registrarSaida,
                 onRemover: _mostrarDialogoConfirmarRemocao,
                 corBotao: const Color(0xFF2D1800),
