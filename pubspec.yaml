@@ -1,5 +1,5 @@
 name: viero_stock
-description: "A new Flutter project."
+description: "Não sei o que eu tô fazendo."
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
@@ -32,7 +32,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icon/icon.png"  # PNG 1024x1024, sem transparência
+  image_path: "assets/icon/icon.png"
   web:
     generate: true
     image_path: "assets/icon/icon.png"
