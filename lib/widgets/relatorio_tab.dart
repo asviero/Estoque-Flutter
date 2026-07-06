@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-
-import '../helpers/database_helper.dart';
-import '../models/bebidas.dart';
+import 'package:viero_stock/helpers/database_helper.dart';
+import 'package:viero_stock/models/bebidas.dart';
+import 'package:viero_stock/widgets/operacao_estoque_tab.dart';
 
 class RelatorioTab extends StatefulWidget {
   final DateTime dataSelecionada;
@@ -52,6 +52,16 @@ class _RelatorioTabState extends State<RelatorioTab> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: CircularProgressIndicator(color: Color(0xFF7C3AED)),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Erro ao carregar dados:\n${snapshot.error}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFFF87171)),
+            ),
           );
         }
 
@@ -199,7 +209,7 @@ class _RelatorioCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final estoqueFinal = dado['estoqueFinal'] as int;
-    final estoqueBaixo = estoqueFinal < 5;
+    final estoqueBaixo = estoqueFinal < kLimiteEstoqueBaixo;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
@@ -207,15 +217,7 @@ class _RelatorioCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF13131F),
         borderRadius: BorderRadius.circular(10),
-        border: Border(
-          left: BorderSide(
-            color: estoqueBaixo ? const Color(0xFFB03060) : Colors.transparent,
-            width: 2,
-          ),
-          top: const BorderSide(color: Color(0xFF2A2040), width: 0.5),
-          right: const BorderSide(color: Color(0xFF2A2040), width: 0.5),
-          bottom: const BorderSide(color: Color(0xFF2A2040), width: 0.5),
-        ),
+        border: Border.all(color: const Color(0xFF2A2040), width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
