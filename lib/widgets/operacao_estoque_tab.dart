@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:viero_stock/models/bebidas.dart';
 
-import '../models/bebidas.dart';
-
-const int _limiteEstoqueBaixo = 5;
+const int kLimiteEstoqueBaixo = 3;
 
 class OperacaoEstoqueTab extends StatelessWidget {
   final List<Bebida> estoque;
@@ -128,7 +127,7 @@ class OperacaoEstoqueTab extends StatelessWidget {
             itemCount: estoque.length,
             itemBuilder: (ctx, index) {
               final bebida = estoque[index];
-              final estoqueBaixo = bebida.quantidade < _limiteEstoqueBaixo;
+              final estoqueBaixo = bebida.quantidade < kLimiteEstoqueBaixo;
               return _BebidaCard(
                 bebida: bebida,
                 estoqueBaixo: estoqueBaixo,
@@ -204,8 +203,9 @@ class _BebidaCard extends StatelessWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            GestureDetector(
+            InkWell(
               onTap: onAcao,
+              borderRadius: BorderRadius.circular(7),
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
@@ -223,8 +223,9 @@ class _BebidaCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-            GestureDetector(
+            InkWell(
               onTap: onRemover,
+              borderRadius: BorderRadius.circular(7),
               child: Container(
                 width: 30,
                 height: 30,

@@ -1,8 +1,7 @@
 import 'package:intl/intl.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-
-import '../models/bebidas.dart';
+import 'package:viero_stock/models/bebidas.dart';
 
 class DatabaseHelper {
   DatabaseHelper._privateConstructor();
@@ -77,7 +76,7 @@ class DatabaseHelper {
       final id = nome
           .toLowerCase()
           .replaceAll(' ', '_')
-          .replaceAll(RegExp(r"[^a-z0-9_]"), '');
+          .replaceAll(RegExp(r'[^a-z0-9_]'), '');
       batch.insert('bebidas', {'id': id, 'nome': nome});
     }
     await batch.commit(noResult: true);
