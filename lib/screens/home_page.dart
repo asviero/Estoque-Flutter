@@ -293,8 +293,8 @@ class _HomePageState extends State<HomePage>
             Tab(icon: Icon(Icons.add_shopping_cart, size: 18), text: 'Entrada'),
             Tab(icon: Icon(Icons.point_of_sale, size: 18), text: 'Vendas'),
             Tab(icon: Icon(Icons.local_bar, size: 18), text: 'Saída'),
-            Tab(icon: Icon(Icons.assessment, size: 18), text: 'Relatório'),
             Tab(icon: Icon(Icons.people, size: 18), text: 'Staff'),
+            Tab(icon: Icon(Icons.assessment, size: 18), text: 'Relatório'),
           ],
         ),
       ),
@@ -353,12 +353,12 @@ class _HomePageState extends State<HomePage>
                 corBotaoBorda: const Color(0xFF92400E),
                 textoBotao: 'Enviar',
               ),
+              StaffTab(dataSelecionada: _dataSelecionada),
               RelatorioTab(
                 dataSelecionada: _dataSelecionada,
                 onRemover: _mostrarDialogoConfirmarRemocao,
                 onGerarPDF: _gerarRelatorioPDF,
               ),
-              StaffTab(dataSelecionada: _dataSelecionada),
             ],
           );
         },
