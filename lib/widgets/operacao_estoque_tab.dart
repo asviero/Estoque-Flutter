@@ -4,6 +4,15 @@ import 'package:viero_stock/models/bebidas.dart';
 
 const int kLimiteEstoqueBaixo = 3;
 
+const List<String> kMotivosSaida = [
+  'Reposição do Bar Grande',
+  'Aniversário',
+  'Drinks',
+  'Doses',
+  'Quebra / Perda',
+  'Outros',
+];
+
 class OperacaoEstoqueTab extends StatelessWidget {
   final List<Bebida> estoque;
   final String titulo;
@@ -30,7 +39,9 @@ class OperacaoEstoqueTab extends StatelessWidget {
     final qtdController = TextEditingController();
     final obsController = TextEditingController();
     bool isAjusteInicial = false;
+    String? motivoSelecionado;
     final isEntrada = titulo == 'Entrada no Estoque';
+    final isSaida = titulo == 'Saídas';
 
     showDialog(
       context: context,
@@ -52,6 +63,20 @@ class OperacaoEstoqueTab extends StatelessWidget {
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   ),
+                  if (isSaida) ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: motivoSelecionado,
+                      decoration: const InputDecoration(labelText: 'Motivo'),
+                      items: kMotivosSaida
+                          .map(
+                            (m) => DropdownMenuItem(value: m, child: Text(m)),
+                          )
+                          .toList(),
+                      onChanged: (v) =>
+                          setDialogState(() => motivoSelecionado = v),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   TextField(
                     controller: obsController,
@@ -88,9 +113,17 @@ class OperacaoEstoqueTab extends StatelessWidget {
                 onPressed: () {
                   final quantidade = int.tryParse(qtdController.text) ?? 0;
                   if (quantidade > 0) {
-                    final obs = obsController.text.trim().isEmpty
-                        ? null
-                        : obsController.text.trim();
+                    final obsTexto = obsController.text.trim();
+                    final String? obs;
+                    if (motivoSelecionado != null && obsTexto.isNotEmpty) {
+                      obs = '$motivoSelecionado — $obsTexto';
+                    } else if (motivoSelecionado != null) {
+                      obs = motivoSelecionado;
+                    } else if (obsTexto.isNotEmpty) {
+                      obs = obsTexto;
+                    } else {
+                      obs = null;
+                    }
                     acao(bebida, quantidade, obs, isAjusteInicial);
                   }
                   Navigator.of(ctx).pop();
