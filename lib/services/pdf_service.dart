@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:viero_stock/widgets/operacao_estoque_tab.dart';
 
 class PdfService {
   PdfService._();
@@ -11,6 +12,7 @@ class PdfService {
     required DateTime data,
     required List<Map<String, dynamic>> dadosConsolidados,
     required List<Map<String, dynamic>> movimentacoesDoDia,
+    required List<Map<String, dynamic>> consumoStaff,
   }) async {
     final fontData = await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
     final boldFontData = await rootBundle.load('assets/fonts/Roboto-Bold.ttf');
@@ -123,23 +125,72 @@ class PdfService {
               headerDecoration: const pw.BoxDecoration(
                 color: PdfColors.grey300,
               ),
-              headers: ['Qtd.', 'Bebida', 'Tipo', 'Observação'],
-              data: todasAsSaidas
+              headers: ['Qtd.', 'Bebida', 'Tipo', 'Motivo', 'Observação'],
+              data: todasAsSaidas.map((m) {
+                final raw = m['observacao'] as String? ?? '';
+                final sepIdx = raw.indexOf(' — ');
+                final String motivo;
+                final String obs;
+                if (sepIdx != -1 &&
+                    kMotivosSaida.contains(raw.substring(0, sepIdx))) {
+                  motivo = raw.substring(0, sepIdx);
+                  obs = raw.substring(sepIdx + 3);
+                } else if (kMotivosSaida.contains(raw)) {
+                  motivo = raw;
+                  obs = '-';
+                } else {
+                  motivo = '-';
+                  obs = raw.isEmpty ? '-' : raw;
+                }
+                return [
+                  (m['quantidade_alterada'] as int).abs().toString(),
+                  m['nome'],
+                  m['tipo'],
+                  motivo,
+                  obs,
+                ];
+              }).toList(),
+              cellAlignments: {0: cellCenter},
+              columnWidths: {
+                0: const pw.FlexColumnWidth(0.7),
+                1: const pw.FlexColumnWidth(2.3),
+                2: const pw.FlexColumnWidth(1.8),
+                3: const pw.FlexColumnWidth(2.2),
+                4: const pw.FlexColumnWidth(3.0),
+              },
+              border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+            ),
+          ],
+          if (consumoStaff.isNotEmpty) ...[
+            pw.SizedBox(height: 20),
+            pw.Text(
+              'Consumo da Equipe',
+              style: pw.TextStyle(font: ttfBold, fontSize: 11),
+            ),
+            pw.SizedBox(height: 6),
+            pw.TableHelper.fromTextArray(
+              headerStyle: headerStyle,
+              cellStyle: cellStyle,
+              headerDecoration: const pw.BoxDecoration(
+                color: PdfColors.grey300,
+              ),
+              headers: ['Qtd.', 'Item', 'Categoria', 'Observação'],
+              data: consumoStaff
                   .map(
-                    (m) => [
-                      (m['quantidade_alterada'] as int).abs().toString(),
-                      m['nome'],
-                      m['tipo'],
-                      m['observacao'] ?? '-',
+                    (c) => [
+                      (c['quantidade'] as int).toString(),
+                      c['item'],
+                      c['categoria'],
+                      c['observacao'] ?? '-',
                     ],
                   )
                   .toList(),
               cellAlignments: {0: cellCenter},
               columnWidths: {
-                0: const pw.FlexColumnWidth(0.8),
-                1: const pw.FlexColumnWidth(2.5),
-                2: const pw.FlexColumnWidth(2),
-                3: const pw.FlexColumnWidth(4.7),
+                0: const pw.FlexColumnWidth(0.7),
+                1: const pw.FlexColumnWidth(3.0),
+                2: const pw.FlexColumnWidth(2.0),
+                3: const pw.FlexColumnWidth(4.3),
               },
               border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
             ),

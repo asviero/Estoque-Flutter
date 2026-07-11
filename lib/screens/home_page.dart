@@ -5,6 +5,7 @@ import 'package:viero_stock/models/bebidas.dart';
 import 'package:viero_stock/services/pdf_service.dart';
 import 'package:viero_stock/widgets/operacao_estoque_tab.dart';
 import 'package:viero_stock/widgets/relatorio_tab.dart';
+import 'package:viero_stock/widgets/staff_tab.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,7 +25,7 @@ class _HomePageState extends State<HomePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _refreshBebidasList();
     _tabController.addListener(_handleSelecaoDeAba);
   }
@@ -231,11 +232,13 @@ class _HomePageState extends State<HomePage>
     final movimentacoesDoDia = await dbHelper.getMovimentacoesDoDia(
       _dataSelecionada,
     );
+    final consumoStaff = await dbHelper.getConsumoStaffDoDia(_dataSelecionada);
 
     await PdfService.gerarRelatorio(
       data: _dataSelecionada,
       dadosConsolidados: dadosConsolidados,
       movimentacoesDoDia: movimentacoesDoDia,
+      consumoStaff: consumoStaff,
     );
   }
 
@@ -291,6 +294,7 @@ class _HomePageState extends State<HomePage>
             Tab(icon: Icon(Icons.point_of_sale, size: 18), text: 'Vendas'),
             Tab(icon: Icon(Icons.local_bar, size: 18), text: 'Saída'),
             Tab(icon: Icon(Icons.assessment, size: 18), text: 'Relatório'),
+            Tab(icon: Icon(Icons.people, size: 18), text: 'Staff'),
           ],
         ),
       ),
@@ -354,6 +358,7 @@ class _HomePageState extends State<HomePage>
                 onRemover: _mostrarDialogoConfirmarRemocao,
                 onGerarPDF: _gerarRelatorioPDF,
               ),
+              StaffTab(dataSelecionada: _dataSelecionada),
             ],
           );
         },

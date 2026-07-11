@@ -11,8 +11,13 @@ class DatabaseHelper {
   Future<Database> get database async => _database ??= await _initDB();
 
   Future<Database> _initDB() async {
-    final path = join(await getDatabasesPath(), 'estoque_v3.db');
-    return openDatabase(path, version: 1, onCreate: _onCreate);
+    final path = join(await getDatabasesPath(), 'estoque.db');
+    return openDatabase(
+      path,
+      version: 2,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -33,7 +38,32 @@ class DatabaseHelper {
         FOREIGN KEY (bebida_id) REFERENCES bebidas (id) ON DELETE CASCADE
       )
     ''');
+    await db.execute('''
+      CREATE TABLE consumo_staff (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        data TEXT NOT NULL,
+        categoria TEXT NOT NULL,
+        item TEXT NOT NULL,
+        quantidade INTEGER NOT NULL,
+        observacao TEXT
+      )
+    ''');
     await _seedBebidas(db);
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE consumo_staff (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          data TEXT NOT NULL,
+          categoria TEXT NOT NULL,
+          item TEXT NOT NULL,
+          quantidade INTEGER NOT NULL,
+          observacao TEXT
+        )
+      ''');
+    }
   }
 
   Future<void> _seedBebidas(Database db) async {
@@ -208,6 +238,38 @@ class DatabaseHelper {
   Future<void> deleteBebida(String id) async {
     final db = await database;
     await db.delete('bebidas', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> insertConsumoStaff({
+    required DateTime data,
+    required String categoria,
+    required String item,
+    required int quantidade,
+    String? observacao,
+  }) async {
+    final db = await database;
+    await db.insert('consumo_staff', {
+      'data': _formatDate(data),
+      'categoria': categoria,
+      'item': item,
+      'quantidade': quantidade,
+      'observacao': observacao,
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getConsumoStaffDoDia(DateTime data) async {
+    final db = await database;
+    return db.query(
+      'consumo_staff',
+      where: 'data = ?',
+      whereArgs: [_formatDate(data)],
+      orderBy: 'categoria ASC, id ASC',
+    );
+  }
+
+  Future<void> deleteConsumoStaff(int id) async {
+    final db = await database;
+    await db.delete('consumo_staff', where: 'id = ?', whereArgs: [id]);
   }
 
   String _formatDate(DateTime date) => DateFormat('yyyy-MM-dd').format(date);
