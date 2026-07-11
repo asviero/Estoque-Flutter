@@ -24,6 +24,48 @@ class PdfService {
         .where((m) => (m['quantidade_alterada'] as int) < 0)
         .toList();
 
+    final Map<String, Map<String, dynamic>> mapaConsumo = {};
+
+    for (var c in consumoStaff) {
+      final categoria = c['categoria'] as String? ?? '';
+      final item = c['item'] as String? ?? '';
+      final quantidade = c['quantidade'] as int? ?? 0;
+      final observacao = (c['observacao'] as String?)?.trim() ?? '';
+
+      final key = '$categoria|$item';
+
+      if (mapaConsumo.containsKey(key)) {
+        mapaConsumo[key]!['quantidade'] =
+            (mapaConsumo[key]!['quantidade'] as int) + quantidade;
+
+        String obsAtual = mapaConsumo[key]!['observacao'] as String;
+        if (observacao.isNotEmpty && observacao != '-') {
+          if (obsAtual == '-' || obsAtual.isEmpty) {
+            mapaConsumo[key]!['observacao'] = observacao;
+          } else if (!obsAtual.contains(observacao)) {
+            mapaConsumo[key]!['observacao'] = '$obsAtual, $observacao';
+          }
+        }
+      } else {
+        mapaConsumo[key] = {
+          'categoria': categoria,
+          'item': item,
+          'quantidade': quantidade,
+          'observacao': observacao.isEmpty ? '-' : observacao,
+        };
+      }
+    }
+
+    final consumoStaffAgrupado = mapaConsumo.values.toList();
+
+    consumoStaffAgrupado.sort((a, b) {
+      int comp = (a['categoria'] as String).compareTo(b['categoria'] as String);
+      if (comp == 0) {
+        return (a['item'] as String).compareTo(b['item'] as String);
+      }
+      return comp;
+    });
+
     final pageFormat = PdfPageFormat.a4.landscape.copyWith(
       marginTop: 20,
       marginBottom: 20,
@@ -161,7 +203,8 @@ class PdfService {
               border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
             ),
           ],
-          if (consumoStaff.isNotEmpty) ...[
+
+          if (consumoStaffAgrupado.isNotEmpty) ...[
             pw.SizedBox(height: 20),
             pw.Text(
               'Consumo da Equipe',
@@ -175,7 +218,7 @@ class PdfService {
                 color: PdfColors.grey300,
               ),
               headers: ['Qtd.', 'Item', 'Categoria', 'Observação'],
-              data: consumoStaff
+              data: consumoStaffAgrupado
                   .map(
                     (c) => [
                       (c['quantidade'] as int).toString(),
