@@ -156,6 +156,7 @@ class OperacaoEstoqueTab extends StatelessWidget {
         ),
         Expanded(
           child: ListView.builder(
+            key: PageStorageKey<String>('scroll_estoque_$titulo'),
             padding: const EdgeInsets.only(bottom: 80),
             itemCount: estoque.length,
             itemBuilder: (ctx, index) {

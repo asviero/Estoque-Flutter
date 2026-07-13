@@ -301,7 +301,8 @@ class _HomePageState extends State<HomePage>
       body: FutureBuilder<List<Bebida>>(
         future: _listaBebidas,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              !snapshot.hasData) {
             return const Center(
               child: CircularProgressIndicator(color: Color(0xFF7C3AED)),
             );
