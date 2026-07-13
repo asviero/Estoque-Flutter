@@ -8,6 +8,30 @@ import 'package:viero_stock/widgets/operacao_estoque_tab.dart';
 class PdfService {
   PdfService._();
 
+  static pw.Widget _buildTable({
+    required List<String> headers,
+    required List<List<Object?>> data,
+    required List<double> widths,
+    required pw.TextStyle headerStyle,
+    required pw.TextStyle cellStyle,
+    Map<int, pw.Alignment>? cellAlignments,
+  }) {
+    return pw.Table.fromTextArray(
+      headers: headers,
+      data: data,
+      headerStyle: headerStyle,
+      cellStyle: cellStyle,
+      headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+      cellPadding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      border: pw.TableBorder.all(color: PdfColors.grey400, width: .5),
+      columnWidths: {
+        for (int i = 0; i < widths.length; i++)
+          i: pw.FlexColumnWidth(widths[i]),
+      },
+      cellAlignments: cellAlignments ?? {},
+    );
+  }
+
   static Future<void> gerarRelatorio({
     required DateTime data,
     required List<Map<String, dynamic>> dadosConsolidados,
@@ -20,9 +44,14 @@ class PdfService {
     final ttfBold = pw.Font.ttf(boldFontData);
 
     final dataFormatada = DateFormat('dd/MM/yyyy', 'pt_BR').format(data);
-    final todasAsSaidas = movimentacoesDoDia
-        .where((m) => (m['quantidade_alterada'] as int) < 0)
-        .toList();
+    final detalhes = movimentacoesDoDia.where((m) {
+      final tipo = m['tipo'] as String;
+      final obs = (m['observacao'] as String? ?? '').trim();
+      if ((m['quantidade_alterada'] as int) >= 0) return false;
+      if (tipo == 'Saída para Bar') return true;
+      if (tipo == 'Venda') return obs.isNotEmpty;
+      return false;
+    }).toList();
 
     final Map<String, Map<String, dynamic>> mapaConsumo = {};
 
@@ -38,7 +67,7 @@ class PdfService {
         mapaConsumo[key]!['quantidade'] =
             (mapaConsumo[key]!['quantidade'] as int) + quantidade;
 
-        String obsAtual = mapaConsumo[key]!['observacao'] as String;
+        final String obsAtual = mapaConsumo[key]!['observacao'] as String;
         if (observacao.isNotEmpty && observacao != '-') {
           if (obsAtual == '-' || obsAtual.isEmpty) {
             mapaConsumo[key]!['observacao'] = observacao;
@@ -56,25 +85,25 @@ class PdfService {
       }
     }
 
-    final consumoStaffAgrupado = mapaConsumo.values.toList();
+    final consumoStaffAgrupado = mapaConsumo.values.toList()
+      ..sort((a, b) {
+        final comp = (a['categoria'] as String).compareTo(
+          b['categoria'] as String,
+        );
+        return comp != 0
+            ? comp
+            : (a['item'] as String).compareTo(b['item'] as String);
+      });
 
-    consumoStaffAgrupado.sort((a, b) {
-      int comp = (a['categoria'] as String).compareTo(b['categoria'] as String);
-      if (comp == 0) {
-        return (a['item'] as String).compareTo(b['item'] as String);
-      }
-      return comp;
-    });
-
-    final pageFormat = PdfPageFormat.a4.landscape.copyWith(
-      marginTop: 20,
-      marginBottom: 20,
-      marginLeft: 24,
-      marginRight: 24,
+    final pageFormat = PdfPageFormat.a4.copyWith(
+      marginTop: 8,
+      marginBottom: 8,
+      marginLeft: 8,
+      marginRight: 8,
     );
 
-    final headerStyle = pw.TextStyle(font: ttfBold, fontSize: 8);
-    final cellStyle = pw.TextStyle(font: ttf, fontSize: 8);
+    final headerStyle = pw.TextStyle(font: ttfBold, fontSize: 7.5);
+    final cellStyle = pw.TextStyle(font: ttf, fontSize: 7.5);
     const cellCenter = pw.Alignment.center;
 
     final pdf = pw.Document();
@@ -83,19 +112,19 @@ class PdfService {
       pw.MultiPage(
         pageFormat: pageFormat,
         header: (context) => pw.Padding(
-          padding: const pw.EdgeInsets.only(bottom: 8),
+          padding: const pw.EdgeInsets.only(bottom: 4),
           child: pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
               pw.Text(
                 'Relatório de Estoque — $dataFormatada',
-                style: pw.TextStyle(font: ttfBold, fontSize: 14),
+                style: pw.TextStyle(font: ttfBold, fontSize: 13),
               ),
               pw.Text(
                 'Gerado em ${DateFormat('dd/MM/yyyy HH:mm', 'pt_BR').format(DateTime.now())}',
                 style: pw.TextStyle(
                   font: ttf,
-                  fontSize: 8,
+                  fontSize: 7.5,
                   color: PdfColors.grey600,
                 ),
               ),
@@ -104,14 +133,17 @@ class PdfService {
         ),
         build: (context) => [
           pw.Text(
-            'Resumo do Dia',
-            style: pw.TextStyle(font: ttfBold, fontSize: 11),
+            'Resumo do dia:',
+            style: pw.TextStyle(
+              font: ttfBold,
+              fontSize: 10,
+              decoration: pw.TextDecoration.underline,
+            ),
           ),
-          pw.SizedBox(height: 6),
-          pw.TableHelper.fromTextArray(
+          pw.SizedBox(height: 4),
+          _buildTable(
             headerStyle: headerStyle,
             cellStyle: cellStyle,
-            headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
             headers: [
               'Bebida',
               'Est. Inicial',
@@ -143,32 +175,25 @@ class PdfService {
               4: cellCenter,
               5: cellCenter,
             },
-            columnWidths: {
-              0: const pw.FlexColumnWidth(3.5),
-              1: const pw.FlexColumnWidth(1.2),
-              2: const pw.FlexColumnWidth(1.2),
-              3: const pw.FlexColumnWidth(1.2),
-              4: const pw.FlexColumnWidth(1.5),
-              5: const pw.FlexColumnWidth(1.2),
-            },
-            border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+            widths: [4, 1, 1, 1, 1, 1],
           ),
 
-          if (todasAsSaidas.isNotEmpty) ...[
-            pw.SizedBox(height: 20),
+          if (detalhes.isNotEmpty) ...[
+            pw.SizedBox(height: 8),
             pw.Text(
-              'Detalhes das Saídas',
-              style: pw.TextStyle(font: ttfBold, fontSize: 11),
+              'Resumo das saídas do estoque:',
+              style: pw.TextStyle(
+                font: ttfBold,
+                fontSize: 10,
+                decoration: pw.TextDecoration.underline,
+              ),
             ),
-            pw.SizedBox(height: 6),
-            pw.TableHelper.fromTextArray(
+            pw.SizedBox(height: 4),
+            _buildTable(
               headerStyle: headerStyle,
               cellStyle: cellStyle,
-              headerDecoration: const pw.BoxDecoration(
-                color: PdfColors.grey300,
-              ),
               headers: ['Qtd.', 'Bebida', 'Tipo', 'Motivo', 'Observação'],
-              data: todasAsSaidas.map((m) {
+              data: detalhes.map((m) {
                 final raw = m['observacao'] as String? ?? '';
                 final sepIdx = raw.indexOf(' — ');
                 final String motivo;
@@ -193,30 +218,24 @@ class PdfService {
                 ];
               }).toList(),
               cellAlignments: {0: cellCenter},
-              columnWidths: {
-                0: const pw.FlexColumnWidth(0.7),
-                1: const pw.FlexColumnWidth(2.3),
-                2: const pw.FlexColumnWidth(1.8),
-                3: const pw.FlexColumnWidth(2.2),
-                4: const pw.FlexColumnWidth(3.0),
-              },
-              border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+              widths: [1, 3, 2, 2, 4],
             ),
           ],
 
           if (consumoStaffAgrupado.isNotEmpty) ...[
-            pw.SizedBox(height: 20),
+            pw.SizedBox(height: 8),
             pw.Text(
-              'Consumo da Equipe',
-              style: pw.TextStyle(font: ttfBold, fontSize: 11),
+              'Consumo da equipe:',
+              style: pw.TextStyle(
+                font: ttfBold,
+                fontSize: 10,
+                decoration: pw.TextDecoration.underline,
+              ),
             ),
-            pw.SizedBox(height: 6),
-            pw.TableHelper.fromTextArray(
+            pw.SizedBox(height: 4),
+            _buildTable(
               headerStyle: headerStyle,
               cellStyle: cellStyle,
-              headerDecoration: const pw.BoxDecoration(
-                color: PdfColors.grey300,
-              ),
               headers: ['Qtd.', 'Item', 'Categoria', 'Observação'],
               data: consumoStaffAgrupado
                   .map(
@@ -229,13 +248,7 @@ class PdfService {
                   )
                   .toList(),
               cellAlignments: {0: cellCenter},
-              columnWidths: {
-                0: const pw.FlexColumnWidth(0.7),
-                1: const pw.FlexColumnWidth(3.0),
-                2: const pw.FlexColumnWidth(2.0),
-                3: const pw.FlexColumnWidth(4.3),
-              },
-              border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+              widths: [1, 3, 2, 4],
             ),
           ],
         ],
