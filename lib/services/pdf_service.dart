@@ -61,7 +61,7 @@ class PdfService {
       final quantidade = c['quantidade'] as int? ?? 0;
       final observacao = (c['observacao'] as String?)?.trim() ?? '';
 
-      final key = '$categoria|$item';
+      final key = '$categoria|$item|$observacao';
 
       if (mapaConsumo.containsKey(key)) {
         mapaConsumo[key]!['quantidade'] =
