@@ -66,11 +66,20 @@ class _RelatorioTabState extends State<RelatorioTab> {
         }
 
         final dados = snapshot.data ?? [];
-        final totalVendido = dados.fold<int>(
+
+        final resumo = dados
+            .where(
+              (d) =>
+                  (d['vendido'] as int) > 0 ||
+                  (d['retiradoDoEstoque'] as int) > 0,
+            )
+            .toList();
+
+        final totalVendido = resumo.fold<int>(
           0,
           (s, d) => s + (d['vendido'] as int),
         );
-        final totalSaidas = dados.fold<int>(
+        final totalSaidas = resumo.fold<int>(
           0,
           (s, d) => s + (d['retiradoDoEstoque'] as int),
         );
@@ -136,18 +145,18 @@ class _RelatorioTabState extends State<RelatorioTab> {
             ),
 
             Expanded(
-              child: dados.isEmpty
+              child: resumo.isEmpty
                   ? const Center(
                       child: Text(
-                        'Nenhuma movimentação registrada neste dia.',
+                        'Nenhuma venda ou saída registrada neste dia.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Color(0xFF6B5F80)),
                       ),
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.only(bottom: 24),
-                      itemCount: dados.length,
-                      itemBuilder: (ctx, i) => _RelatorioCard(dado: dados[i]),
+                      itemCount: resumo.length,
+                      itemBuilder: (ctx, i) => _RelatorioCard(dado: resumo[i]),
                     ),
             ),
           ],
@@ -208,111 +217,80 @@ class _RelatorioCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final estoqueFinal = dado['estoqueFinal'] as int;
-    final estoqueBaixo = estoqueFinal < kLimiteEstoqueBaixo;
+    final vendido = dado['vendido'] as int;
+    final saidas = dado['retiradoDoEstoque'] as int;
+    final estoque = dado['estoqueFinal'] as int;
+    final estoqueBaixo = estoque < kLimiteEstoqueBaixo;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
       decoration: BoxDecoration(
         color: const Color(0xFF13131F),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFF2A2040), width: 0.5),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  dado['nome'] as String,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFFDDD0F5),
-                  ),
-                ),
-              ),
-              Text(
-                '$estoqueFinal un.',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: estoqueBaixo
-                      ? const Color(0xFFF87171)
-                      : const Color(0xFF6EE7B7),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 12,
-            children: [
-              _InfoChip(
-                label: 'Inicial',
-                valor: dado['estoqueInicial'] as int,
-                cor: const Color(0xFF6B5F80),
-              ),
-              if ((dado['vendido'] as int) > 0)
-                _InfoChip(
-                  label: 'Vendas',
-                  valor: dado['vendido'] as int,
-                  cor: const Color(0xFFF87171),
-                ),
-              if ((dado['retiradoDoEstoque'] as int) > 0)
-                _InfoChip(
-                  label: 'Saídas',
-                  valor: dado['retiradoDoEstoque'] as int,
-                  cor: const Color(0xFFFB923C),
-                ),
-            ],
-          ),
-          if ((dado['observacao'] as String).isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              dado['observacao'] as String,
+          Expanded(
+            child: Text(
+              dado['nome'] as String,
               style: const TextStyle(
-                fontSize: 11,
-                color: Color(0xFF7A6F8A),
-                fontStyle: FontStyle.italic,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFFDDD0F5),
               ),
             ),
+          ),
+          if (vendido > 0) ...[
+            _Stat(
+              label: 'Vendas',
+              valor: vendido,
+              cor: const Color(0xFFF87171),
+            ),
+            const SizedBox(width: 16),
           ],
+          if (saidas > 0) ...[
+            _Stat(label: 'Saídas', valor: saidas, cor: const Color(0xFFFB923C)),
+            const SizedBox(width: 16),
+          ],
+          _Stat(
+            label: 'Estoque',
+            valor: estoque,
+            cor: estoqueBaixo
+                ? const Color(0xFFF87171)
+                : const Color(0xFF6EE7B7),
+          ),
         ],
       ),
     );
   }
 }
 
-class _InfoChip extends StatelessWidget {
+class _Stat extends StatelessWidget {
   final String label;
   final int valor;
   final Color cor;
 
-  const _InfoChip({
-    required this.label,
-    required this.valor,
-    required this.cor,
-  });
+  const _Stat({required this.label, required this.valor, required this.cor});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          '$label: ',
-          style: const TextStyle(fontSize: 11, color: Color(0xFF6B5F80)),
-        ),
-        Text(
           valor.toString(),
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
             color: cor,
-            fontWeight: FontWeight.w500,
           ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: Color(0xFF6B5F80)),
         ),
       ],
     );
