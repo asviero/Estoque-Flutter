@@ -6,11 +6,11 @@ import 'package:viero_stock/screens/home_page.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
-  runApp(const CasaNoturnaApp());
+  runApp(const VieroStock());
 }
 
-class CasaNoturnaApp extends StatelessWidget {
-  const CasaNoturnaApp({super.key});
+class VieroStock extends StatelessWidget {
+  const VieroStock({super.key});
 
   @override
   Widget build(BuildContext context) {
