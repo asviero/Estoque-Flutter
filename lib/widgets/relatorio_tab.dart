@@ -71,7 +71,8 @@ class _RelatorioTabState extends State<RelatorioTab> {
             .where(
               (d) =>
                   (d['vendido'] as int) > 0 ||
-                  (d['retiradoDoEstoque'] as int) > 0,
+                  (d['retiradoDoEstoque'] as int) > 0 ||
+                  (d['estoqueFinal'] as int) > 0,
             )
             .toList();
 
@@ -148,7 +149,7 @@ class _RelatorioTabState extends State<RelatorioTab> {
               child: resumo.isEmpty
                   ? const Center(
                       child: Text(
-                        'Nenhuma venda ou saída registrada neste dia.',
+                        'Nenhuma bebida em estoque ou movimentação registrada neste dia.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Color(0xFF6B5F80)),
                       ),
