@@ -9,6 +9,7 @@ const List<String> kMotivosSaida = [
   'Aniversário',
   'Drinks',
   'Doses',
+  'Camarim',
   'Quebra / Perda',
   'Outros',
 ];
