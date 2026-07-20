@@ -53,6 +53,12 @@ class PdfService {
       return false;
     }).toList();
 
+    final entradas = movimentacoesDoDia.where((m) {
+      final tipo = m['tipo'] as String;
+      final obs = (m['observacao'] as String? ?? '').trim();
+      return tipo == 'Entrada' && obs.isNotEmpty;
+    }).toList();
+
     final Map<String, Map<String, dynamic>> mapaConsumo = {};
 
     for (var c in consumoStaff) {
@@ -178,6 +184,35 @@ class PdfService {
             widths: [4, 1, 1, 1, 1, 1],
           ),
 
+          if (entradas.isNotEmpty) ...[
+            pw.SizedBox(height: 8),
+            pw.Text(
+              'Resumo das entradas do estoque:',
+              style: pw.TextStyle(
+                font: ttfBold,
+                fontSize: 10,
+                decoration: pw.TextDecoration.underline,
+              ),
+            ),
+            pw.SizedBox(height: 4),
+            _buildTable(
+              headerStyle: headerStyle,
+              cellStyle: cellStyle,
+              headers: ['Qtd.', 'Bebida', 'Observação'],
+              data: entradas
+                  .map(
+                    (m) => [
+                      (m['quantidade_alterada'] as int).toString(),
+                      m['nome'],
+                      (m['observacao'] as String? ?? '-'),
+                    ],
+                  )
+                  .toList(),
+              cellAlignments: {0: cellCenter},
+              widths: [1, 3, 6],
+            ),
+          ],
+
           if (detalhes.isNotEmpty) ...[
             pw.SizedBox(height: 8),
             pw.Text(
@@ -192,7 +227,7 @@ class PdfService {
             _buildTable(
               headerStyle: headerStyle,
               cellStyle: cellStyle,
-              headers: ['Qtd.', 'Bebida', 'Tipo', 'Motivo', 'Observação'],
+              headers: ['Qtd.', 'Bebida', 'Motivo da Saída', 'Observação'],
               data: detalhes.map((m) {
                 final raw = m['observacao'] as String? ?? '';
                 final sepIdx = raw.indexOf(' — ');
@@ -212,13 +247,12 @@ class PdfService {
                 return [
                   (m['quantidade_alterada'] as int).abs().toString(),
                   m['nome'],
-                  m['tipo'],
                   motivo,
                   obs,
                 ];
               }).toList(),
               cellAlignments: {0: cellCenter},
-              widths: [1, 3, 2, 2, 4],
+              widths: [1, 3, 3, 5],
             ),
           ],
 
