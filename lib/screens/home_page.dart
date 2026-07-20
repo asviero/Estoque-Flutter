@@ -20,7 +20,16 @@ class _HomePageState extends State<HomePage>
   final dbHelper = DatabaseHelper.instance;
   late Future<List<Bebida>> _listaBebidas;
   int _indiceAbaAtual = 0;
-  DateTime _dataSelecionada = DateTime.now();
+  DateTime _dataSelecionada = _dataDoTurno();
+
+  static DateTime _dataDoTurno() {
+    final agora = DateTime.now();
+    if (agora.hour < 12) {
+      final ontem = agora.subtract(const Duration(days: 1));
+      return DateTime(ontem.year, ontem.month, ontem.day);
+    }
+    return DateTime(agora.year, agora.month, agora.day);
+  }
 
   @override
   void initState() {
